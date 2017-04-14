@@ -6,10 +6,10 @@ import (
 	"go/build"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 )
 
 func main() {
@@ -28,7 +28,8 @@ func main() {
 	base := path.Base(file)
 	tempDir, err := ioutil.TempDir("", "goflycheck_")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("failed to create temp folder")
+		return
 	}
 	defer os.RemoveAll(tempDir)
 	pkg, err := build.ImportDir(path.Dir(file), build.AllowBinary)
@@ -67,11 +68,14 @@ func main() {
 	}
 
 	cmd := exec.Command("go", goArguments...)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return
+	output, _ := cmd.CombinedOutput()
+	out := string(output)
+
+	for _, line := range strings.Split(out, "\n") {
+		if strings.Contains(line, tempFileName) {
+			fmt.Println(line)
+		}
 	}
-	fmt.Println(string(out))
 }
 
 func copyFileContents(src, dst string) (err error) {
